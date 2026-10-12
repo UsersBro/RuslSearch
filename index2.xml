@@ -4,5 +4,5 @@
     <Description>Поисковая система RuslSearch</Description>
     <InputEncoding>UTF-8</InputEncoding>
     <Image width="16" height="16" type="image/x-icon">https://duckduckgo.com/favicon.ico</Image>
-    <Url type="text/html" template="index.html?q={searchTerms}"/>
+    <Url type="text/html" template="https://usersbro.github.io/RuslSearch/?q={searchTerms}"/>
 </OpenSearchDescription>

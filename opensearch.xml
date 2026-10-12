@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
     <ShortName>RuslSearch</ShortName>
-    <Description>RuslSearch Engine</Description>
+    <Description>RuslSearch Engine via 4get</Description>
     <InputEncoding>UTF-8</InputEncoding>
     <Url type="text/html" template="https://usersbro.github.io/RuslSearch/?q={searchTerms}"/>
 </OpenSearchDescription>

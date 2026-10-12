@@ -9,6 +9,7 @@
         :root {
             --bg: #0d1117;
             --card: #161b22;
+            --card-hover: #21262d;
             --accent: #00ffcc;
             --glow: rgba(0, 255, 204, 0.25);
             --text: #c9d1d9;
@@ -30,53 +31,52 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            padding: 30px 20px;
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 25px;
             text-align: center;
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: 2.8rem;
             font-weight: 900;
             letter-spacing: 2px;
             color: #fff;
-            text-shadow: 0 0 20px var(--glow);
-            margin-bottom: 5px;
+            text-shadow: 0 0 15px var(--glow);
+            cursor: pointer;
         }
 
         h1 span {
             color: var(--accent);
         }
 
-        p.sub {
-            color: var(--muted);
-            margin-bottom: 30px;
-            font-size: 0.9rem;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
-
         .search-form {
-            position: relative;
+            display: flex;
+            gap: 10px;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         input[type="text"] {
-            width: 100%;
-            padding: 20px 25px;
-            font-size: 1.15rem;
+            flex-grow: 1;
+            padding: 16px 22px;
+            font-size: 1.1rem;
             background-color: var(--card);
             border: 2px solid var(--border);
-            border-radius: 14px;
+            border-radius: 12px;
             color: #fff;
             outline: none;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
@@ -86,17 +86,12 @@
         }
 
         button.search-btn {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
             background-color: var(--accent);
             color: #000;
             border: none;
-            padding: 12px 26px;
-            border-radius: 10px;
+            padding: 0 26px;
+            border-radius: 12px;
             font-weight: 800;
-            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -107,9 +102,64 @@
         }
 
         #status {
+            text-align: center;
             color: var(--accent);
             font-weight: bold;
-            margin-top: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .result-card:hover {
+            border-color: var(--accent);
+            background-color: var(--card-hover);
+            transform: translateY(-2px);
+        }
+
+        .result-title a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .result-title a:hover {
+            text-decoration: underline;
+        }
+
+        .result-url {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .result-snippet {
+            color: #c9d1d9;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 50px;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -117,35 +167,132 @@
 
     <div class="container">
         <header>
-            <h1>RUSL<span>SEARCH</span></h1>
-            <p class="sub">Поисковый движок</p>
+            <h1 onclick="window.location.href='index.html'">RUSL<span>SEARCH</span></h1>
         </header>
 
-        <!-- Прямая отправка запроса в движок 4get -->
-        <form id="searchForm" class="search-form" action="https://4get.ca/web" method="get">
+        <form id="searchForm" class="search-form" action="index.html" method="get">
             <input type="text" name="q" id="searchInput" placeholder="Введите любой запрос..." required autocomplete="off" autofocus>
-            <button type="submit" class="search-btn">НАЙТИ</button>
+            <button type="submit" class="search-btn">ИСКАТЬ</button>
         </form>
 
-        <div id="status"></div>
+        <div id="status">⚡ Получение результатов с 4get...</div>
+        <div id="results" class="results-list">
+            <div class="welcome-screen" id="welcome">Введите запрос в строку или используйте адресную строку LibreWolf.</div>
+        </div>
     </div>
 
     <script>
-        // Перехват запросов из адресной строки LibreWolf (?q=... или /запрос)
-        const urlParams = new URLSearchParams(window.location.search);
-        let query = urlParams.get('q');
+        const form = document.getElementById('searchForm');
+        const input = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('results');
+        const status = document.getElementById('status');
+        const welcome = document.getElementById('welcome');
 
-        if (!query) {
-            const pathname = window.location.pathname;
-            const parts = pathname.split('/').filter(Boolean);
-            if (parts.length > 1) {
-                query = decodeURIComponent(parts.slice(1).join('/'));
+        // Читаем запрос из URL параметров (?q=...) или по пути (/запрос)
+        function getQuery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let q = urlParams.get('q');
+            if (!q) {
+                const pathname = window.location.pathname;
+                const parts = pathname.split('/').filter(Boolean);
+                if (parts.length > 1) {
+                    q = decodeURIComponent(parts.slice(1).join('/'));
+                }
+            }
+            return q;
+        }
+
+        const query = getQuery();
+        if (query) {
+            input.value = query;
+            document.title = `${query} — RuslSearch`;
+            fetchFrom4get(query);
+        }
+
+        async function fetchFrom4get(q) {
+            if (welcome) welcome.style.display = 'none';
+            status.style.display = 'block';
+            resultsContainer.innerHTML = '';
+
+            try {
+                // Загружаем HTML со страницы 4get через CORS-прокси и парсим
+                const targetUrl = `https://4get.ca/web?q=${encodeURIComponent(q)}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Ошибка сети');
+
+                const htmlText = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+
+                status.style.display = 'none';
+
+                let count = 0;
+
+                // Перебираем блоки на странице 4get, вытаскивая заголовки, ссылки и описания
+                doc.querySelectorAll('div, article, section').forEach(container => {
+                    const link = container.querySelector('a');
+                    if (link && link.href && link.href.startsWith('http') && !link.href.includes('4get.ca')) {
+                        const title = link.innerText.trim();
+                        const url = link.href;
+                        
+                        let snippet = '';
+                        const pTag = container.querySelector('p');
+                        if (pTag) snippet = pTag.innerText.trim();
+
+                        if (title && title.length > 2 && url) {
+                            renderCard(title, url, snippet);
+                            count++;
+                        }
+                    }
+                });
+
+                if (count === 0) {
+                    // Резервный сбор всех внешних ссылок со страницы 4get
+                    doc.querySelectorAll('a').forEach(a => {
+                        const href = a.getAttribute('href');
+                        if (href && href.startsWith('http') && !href.includes('4get.ca') && a.innerText.trim().length > 3) {
+                            renderCard(a.innerText.trim(), href, '');
+                            count++;
+                        }
+                    });
+                }
+
+                if (count === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="result-card" style="text-align: center;">
+                            <p class="result-snippet">По запросу «${q}» ничего не найдено.</p><br>
+                            <a href="https://4get.ca/web?q=${encodeURIComponent(q)}" style="color: var(--accent); font-weight: bold;">Открыть на 4get.ca &rarr;</a>
+                        </div>
+                    `;
+                }
+
+            } catch (err) {
+                status.style.display = 'none';
+                resultsContainer.innerHTML = `
+                    <div class="result-card" style="text-align: center;">
+                        <p class="result-snippet">Ошибка загрузки. Откройте поиск на 4get напрямую:</p><br>
+                        <a href="https://4get.ca/web?q=${encodeURIComponent(q)}" style="color: var(--accent); font-weight: bold; font-size: 1.1rem;">Перейти на 4get &rarr;</a>
+                    </div>
+                `;
             }
         }
 
-        if (query) {
-            document.getElementById('status').innerText = `⚡ Перенаправление запроса «${query}»...`;
-            window.location.href = `https://4get.ca/web?q=${encodeURIComponent(query)}`;
+        function renderCard(title, url, snippet) {
+            if (document.querySelector(`[data-url="${url}"]`)) return;
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.setAttribute('data-url', url);
+            card.innerHTML = `
+                <div class="result-title">
+                    <a href="${url}">${title}</a>
+                </div>
+                <div class="result-url">${url}</div>
+                <div class="result-snippet">${snippet}</div>
+            `;
+            resultsContainer.appendChild(card);
         }
     </script>
 </body>

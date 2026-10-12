@@ -9,6 +9,7 @@
         :root {
             --bg: #0d1117;
             --card: #161b22;
+            --card-hover: #21262d;
             --accent: #00ffcc;
             --glow: rgba(0, 255, 204, 0.25);
             --text: #c9d1d9;
@@ -30,53 +31,49 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;
         }
 
         .container {
             width: 100%;
-            max-width: 650px;
+            max-width: 800px;
+        }
+
+        header {
             text-align: center;
+            margin-bottom: 30px;
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: 2.8rem;
             font-weight: 900;
             letter-spacing: 2px;
             color: #fff;
-            text-shadow: 0 0 20px var(--glow);
-            margin-bottom: 5px;
+            text-shadow: 0 0 15px var(--glow);
+            cursor: pointer;
         }
 
         h1 span {
             color: var(--accent);
         }
 
-        p.sub {
-            color: var(--muted);
-            margin-bottom: 30px;
-            font-size: 0.9rem;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
-
         .search-form {
-            position: relative;
+            display: flex;
+            gap: 10px;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         input[type="text"] {
-            width: 100%;
-            padding: 20px 25px;
-            font-size: 1.15rem;
+            flex-grow: 1;
+            padding: 16px 22px;
+            font-size: 1.1rem;
             background-color: var(--card);
             border: 2px solid var(--border);
-            border-radius: 14px;
+            border-radius: 12px;
             color: #fff;
             outline: none;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
@@ -86,17 +83,12 @@
         }
 
         button.search-btn {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
             background-color: var(--accent);
             color: #000;
             border: none;
-            padding: 12px 26px;
-            border-radius: 10px;
+            padding: 0 26px;
+            border-radius: 12px;
             font-weight: 800;
-            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -107,9 +99,64 @@
         }
 
         #status {
+            text-align: center;
             color: var(--accent);
             font-weight: bold;
-            margin-top: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .result-card:hover {
+            border-color: var(--accent);
+            background-color: var(--card-hover);
+            transform: translateY(-2px);
+        }
+
+        .result-title a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .result-title a:hover {
+            text-decoration: underline;
+        }
+
+        .result-url {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .result-snippet {
+            color: #c9d1d9;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 50px;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -117,78 +164,116 @@
 
     <div class="container">
         <header>
-            <h1>RUSL<span>SEARCH</span></h1>
-            <p class="sub">Быстрый поисковый шлюз</p>
+            <h1 onclick="window.location.href='index.html'">RUSL<span>SEARCH</span></h1>
         </header>
 
-        <form id="searchForm" class="search-form">
-            <input type="text" id="searchInput" placeholder="Введите любой запрос..." required autocomplete="off" autofocus>
-            <button type="submit" class="search-btn">НАЙТИ</button>
+        <form id="searchForm" class="search-form" action="index.html" method="get">
+            <input type="text" name="q" id="searchInput" placeholder="Введите любой запрос (ютуб, фильмы)..." required autocomplete="off" autofocus>
+            <button type="submit" class="search-btn">ИСКАТЬ</button>
         </form>
 
-        <div id="status"></div>
+        <div id="status">⚡ Запрос к DuckDuckGo...</div>
+        <div id="results" class="results-list">
+            <div class="welcome-screen" id="welcome">Введите запрос в строку выше или используйте адресную строку LibreWolf.</div>
+        </div>
     </div>
 
     <script>
         const form = document.getElementById('searchForm');
         const input = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('results');
         const status = document.getElementById('status');
+        const welcome = document.getElementById('welcome');
 
-        // Читаем запрос из URL: ?q=запрос или /запрос
-        function getQueryFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let q = urlParams.get('q');
-            
-            if (!q) {
-                // Вытаскиваем текст после /RuslSearch/
-                const pathname = window.location.pathname;
-                const parts = pathname.split('/').filter(Boolean);
-                if (parts.length > 1) {
-                    q = decodeURIComponent(parts.slice(1).join('/'));
-                }
-            }
-            return q;
-        }
+        // Читаем запрос из URL параметров (?q=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q');
 
-        function processSearch(query) {
-            if (!query) return;
-
+        if (query) {
             input.value = query;
             document.title = `${query} — RuslSearch`;
-            status.innerText = `⚡ Поиск по запросу «${query}»...`;
+            performDuckDuckGoSearch(query);
+        }
 
-            let targetUrl = '';
+        async function performDuckDuckGoSearch(q) {
+            if (welcome) welcome.style.display = 'none';
+            status.style.display = 'block';
+            resultsContainer.innerHTML = '';
 
-            // Команды перенаправления
-            if (query.startsWith('/github') || query.startsWith('/gh')) {
-                const term = query.replace(/^\/(github|gh)\s*/i, '');
-                targetUrl = `https://github.com/search?q=${encodeURIComponent(term)}`;
-            } 
-            else if (query.startsWith('/youtube') || query.startsWith('/yt')) {
-                const term = query.replace(/^\/(youtube|yt)\s*/i, '');
-                targetUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(term)}`;
-            } 
-            else {
-                // Перенаправление на стилизованный DuckDuckGo под темы RuslSearch
-                targetUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}&kae=d&k7=0d1117&k9=00ffcc&kx=00e6b8`;
+            // Команды для быстрого перехода
+            if (q.startsWith('/github') || q.startsWith('/gh')) {
+                const term = q.replace(/^\/(github|gh)\s*/i, '');
+                window.location.href = `https://github.com/search?q=${encodeURIComponent(term)}`;
+                return;
+            }
+            if (q.startsWith('/youtube') || q.startsWith('/yt')) {
+                const term = q.replace(/^\/(youtube|yt)\s*/i, '');
+                window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(term)}`;
+                return;
             }
 
-            setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 200);
+            try {
+                // Запрос к DuckDuckGo API
+                const apiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`;
+                
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Ошибка сети');
+
+                const data = await response.json();
+                status.style.display = 'none';
+
+                let hasResults = false;
+
+                // Основная карточка ответа
+                if (data.Heading && data.Abstract) {
+                    hasResults = true;
+                    renderCard(data.Heading, data.AbstractURL || '#', data.Abstract);
+                }
+
+                // Связанные темы
+                if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                    data.RelatedTopics.forEach(item => {
+                        if (item.Text && item.FirstURL) {
+                            hasResults = true;
+                            const title = item.Text.split(' - ')[0] || item.FirstURL;
+                            renderCard(title, item.FirstURL, item.Text);
+                        }
+                    });
+                }
+
+                if (!hasResults) {
+                    resultsContainer.innerHTML = `
+                        <div class="result-card" style="text-align: center;">
+                            <p class="result-snippet">Прямой выдачи не найдено. Открыть поиск в DuckDuckGo:</p><br>
+                            <a href="https://duckduckgo.com/?q=${encodeURIComponent(q)}" style="color: var(--accent); font-weight: bold; font-size: 1.1rem;">Открыть в DuckDuckGo &rarr;</a>
+                        </div>
+                    `;
+                }
+
+            } catch (err) {
+                status.style.display = 'none';
+                resultsContainer.innerHTML = `
+                    <div class="result-card" style="text-align: center;">
+                        <p class="result-snippet">Ошибка запроса. Открыть поиск в DuckDuckGo:</p><br>
+                        <a href="https://duckduckgo.com/?q=${encodeURIComponent(q)}" style="color: var(--accent); font-weight: bold; font-size: 1.1rem;">Открыть в DuckDuckGo &rarr;</a>
+                    </div>
+                `;
+            }
         }
 
-        // Автозапуск при переходе по ссылке из LibreWolf
-        const initialQuery = getQueryFromURL();
-        if (initialQuery) {
-            processSearch(initialQuery);
+        function renderCard(title, url, snippet) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            // Без target="_blank", ссылки открываются в этой же вкладке
+            card.innerHTML = `
+                <div class="result-title">
+                    <a href="${url}">${title}</a>
+                </div>
+                <div class="result-url">${url}</div>
+                <div class="result-snippet">${snippet}</div>
+            `;
+            resultsContainer.appendChild(card);
         }
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const q = input.value.trim();
-            processSearch(q);
-        });
     </script>
 </body>
 </html>
